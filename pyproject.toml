@@ -1,0 +1,51 @@
+[project]
+name = "ornlkit"
+version = "0.1.0"
+description = "Data engineering toolkit for ORNL"
+requires-python = ">=3.12"
+dependencies = [
+    # DataFrames & columnar data (Rust-backed)
+    "polars",
+    "pyarrow",
+
+    # SQL over Arrow data (Rust-backed)
+    "datafusion",
+
+    # Data validation (Rust core in v2)
+    "pydantic>=2",
+
+    # Fast JSON (Rust-backed)
+    "orjson",
+
+    # Graph algorithms (Rust-backed, from IBM/Qiskit)
+    "rustworkx",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "ty",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+# On OLCF systems, set this to inherit ROCm/MPI packages from the system conda env.
+# Uncomment when working on Frontier:
+# python-preference = "only-system"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ty]
+python-version = "3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,21 @@
+# Nix
+result
+result-*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Rust
+target/
+
+# Apptainer
+*.sif
+
+# Editor
+.direnv/
+.envrc.local
