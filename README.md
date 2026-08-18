@@ -16,6 +16,8 @@ ornlkit/
 ├── rust-toolchain.toml        # Rust toolchain pinning
 ├── containers/
 │   └── frontier.def           # Apptainer definition for Frontier
+├── jobs/
+│   └── hello.sbatch           # Frontier smoke-test batch script
 ├── src/ornlkit/               # Python package source
 └── tests/                     # Test suite
 ```
@@ -114,6 +116,30 @@ IMG=/ccs/proj/<project_id>/$USER/frontier.sif
 
 srun -N 2 -n 16 --gpus-per-task=1 \
     apptainer exec "$IMG" python3 your_script.py
+```
+
+## Smoke test
+
+A ready-made batch script verifies the environment on a compute node:
+
+```bash
+# Edit jobs/hello.sbatch and replace <project_id> with your OLCF allocation
+sbatch jobs/hello.sbatch
+```
+
+This runs `uv run python3 -u -m ornlkit`, which logs diagnostics (hostname,
+SLURM job info, Python version, core dependency versions) then exits. Output
+goes to `logs/ornlkit-hello-<jobid>.out`:
+
+```bash
+squeue -u $USER              # check job status
+cat logs/ornlkit-hello-*.out  # view results
+```
+
+You can also run locally to preview the output:
+
+```bash
+uv run ornlkit
 ```
 
 ## Reference
