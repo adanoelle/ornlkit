@@ -16,6 +16,9 @@ target/
 # Apptainer
 *.sif
 
+# SLURM output
+logs/
+
 # Editor
 .direnv/
 .envrc.local
