@@ -204,7 +204,7 @@ dependencies = [
     { name = "rustworkx" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "pytest" },
     { name = "ruff" },
@@ -218,12 +218,15 @@ requires-dist = [
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "ruff", marker = "extra == 'dev'" },
     { name = "rustworkx" },
-    { name = "ty", marker = "extra == 'dev'" },
 ]
-provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "ty" },
+]
 
 [[package]]
 name = "packaging"
