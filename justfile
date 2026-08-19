@@ -33,6 +33,10 @@ typecheck:
 # Run lint, typecheck, and tests
 check: lint typecheck test
 
+# Sync .venv with uv.lock (run before submitting jobs if deps changed)
+sync:
+    uv run python -c ""
+
 # Local run with unified output dir
 run *hydra_args:
     #!/usr/bin/env bash
@@ -89,10 +93,6 @@ submit *hydra_args:
     fi
 
     mkdir -p "runs/{{ job_name }}"
-
-    # Ensure .venv is up-to-date before submitting to compute nodes (which lack internet)
-    uv run python -c ""
-
     jobid=$(sbatch --parsable \
         -A "$_account" \
         -J {{ job_name }} \
