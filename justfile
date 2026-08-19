@@ -89,6 +89,10 @@ submit *hydra_args:
     fi
 
     mkdir -p "runs/{{ job_name }}"
+
+    # Ensure .venv is up-to-date before submitting to compute nodes (which lack internet)
+    uv sync
+
     jobid=$(sbatch --parsable \
         -A "$_account" \
         -J {{ job_name }} \
