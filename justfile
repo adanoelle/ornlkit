@@ -33,8 +33,11 @@ typecheck:
 # Run lint, typecheck, and tests
 check: lint typecheck test
 
-# Sync .venv with uv.lock (run before submitting jobs if deps changed)
+# Sync .venv with uv.lock using the miniforge3 Python (shared across login + compute nodes)
 sync:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    module load miniforge3/23.11.0-0
     uv run python -c ""
 
 # Local run with unified output dir
