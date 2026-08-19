@@ -2,6 +2,7 @@
 
 # --- SLURM defaults (override on CLI or via env) ---
 account      := env("ORNLKIT_ACCOUNT", "")
+script       := "jobs/hello.sbatch"
 job_name     := "ornlkit"
 nodes        := "1"
 time         := "00:05:00"
@@ -52,28 +53,14 @@ submit *hydra_args:
         exit 1
     fi
     mkdir -p "runs/{{ job_name }}"
-    jobid=$(sbatch --parsable <<'SBATCH'
-    #!/bin/bash
-    #SBATCH -A {{ account }}
-    #SBATCH -J {{ job_name }}
-    #SBATCH -N {{ nodes }}
-    #SBATCH -t {{ time }}
-    #SBATCH -p {{ partition }}
-    #SBATCH -o runs/{{ job_name }}/%j.log
-
-    set -euo pipefail
-
-    module load miniforge3/23.11.0-0
-
-    export PATH="$HOME/.local/bin:$PATH"
-    export UV_CACHE_DIR="/tmp/uv-cache-$USER"
-
-    run_dir="runs/{{ job_name }}/$SLURM_JOB_ID"
-    mkdir -p "$run_dir"
-
-    uv run ornlkit hydra.run.dir="$run_dir" {{ hydra_args }}
-    SBATCH
-    )
+    jobid=$(sbatch --parsable \
+        -A {{ account }} \
+        -J {{ job_name }} \
+        -N {{ nodes }} \
+        -t {{ time }} \
+        -p {{ partition }} \
+        -o "runs/{{ job_name }}/%j.log" \
+        {{ script }} {{ hydra_args }})
     echo "Submitted job ${jobid}"
     echo "  SLURM log: runs/{{ job_name }}/${jobid}.log"
     echo "  Hydra dir: runs/{{ job_name }}/${jobid}/"
