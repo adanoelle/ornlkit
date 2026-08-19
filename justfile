@@ -44,23 +44,59 @@ run *hydra_args:
 
 # ── SLURM recipes ────────────────────────────────
 
-# Submit a SLURM job (requires account=<project_id>)
+# Submit a SLURM job — interactive with gum, or just submit account=ABC123
 submit *hydra_args:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -z "{{ account }}" ]; then
-        echo "Error: account is required. Usage: just submit account=ABC123 [hydra_args...]" >&2
-        exit 1
+
+    _account="{{ account }}"
+    _script="{{ script }}"
+    _nodes="{{ nodes }}"
+    _time="{{ time }}"
+    _partition="{{ partition }}"
+    _hydra_args="{{ hydra_args }}"
+
+    # Interactive mode: account is empty and gum is available
+    if [ -z "$_account" ]; then
+        if ! command -v gum &>/dev/null; then
+            echo "Error: account is required. Usage: just submit account=ABC123 [hydra_args...]" >&2
+            exit 1
+        fi
+
+        # Account (required — loop until non-empty)
+        while [ -z "$_account" ]; do
+            _account=$(gum input --prompt "Account: " --placeholder "e.g. ABC123")
+        done
+
+        # Script (choose from jobs/*.sbatch)
+        _choices=$(printf '%s\n' jobs/*.sbatch)
+        _script=$(echo "$_choices" | gum choose --header "Script:" --selected "$_script")
+
+        # Nodes
+        _nodes=$(gum input --prompt "Nodes: " --value "$_nodes")
+
+        # Time
+        _time=$(gum input --prompt "Time: " --value "$_time")
+
+        # Hydra overrides (optional)
+        _hydra_args=$(gum input --prompt "Hydra overrides (optional): " --value "$_hydra_args")
+
+        # Confirmation
+        _cmd="sbatch -A $_account -J {{ job_name }} -N $_nodes -t $_time -p $_partition -o runs/{{ job_name }}/%j.log $_script $_hydra_args"
+        gum style --border rounded --padding "0 1" --border-foreground 4 \
+            "$_cmd"
+        gum confirm "Submit?" || { echo "Aborted."; exit 1; }
     fi
+
     mkdir -p "runs/{{ job_name }}"
     jobid=$(sbatch --parsable \
-        -A {{ account }} \
+        -A "$_account" \
         -J {{ job_name }} \
-        -N {{ nodes }} \
-        -t {{ time }} \
-        -p {{ partition }} \
+        -N "$_nodes" \
+        -t "$_time" \
+        -p "$_partition" \
         -o "runs/{{ job_name }}/%j.log" \
-        {{ script }} {{ hydra_args }})
+        "$_script" $_hydra_args)
     echo "Submitted job ${jobid}"
     echo "  SLURM log: runs/{{ job_name }}/${jobid}.log"
     echo "  Hydra dir: runs/{{ job_name }}/${jobid}/"

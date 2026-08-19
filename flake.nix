@@ -43,6 +43,7 @@
             pkgs.ripgrep
             pkgs.fd
             pkgs.bat
+            pkgs.gum
             pkgs.git
 
             # -- Container tooling (for building images locally) --
@@ -55,6 +56,9 @@
             echo "  uv     : $(uv --version)"
             echo "  cargo  : $(cargo --version)"
             echo ""
+            # Return to the user's shell (nix develop forces bash)
+            _user_shell=$(grep "^$USER:" /etc/passwd | cut -d: -f7) || true
+            [ -x "''${_user_shell:-}" ] && [ "''${_user_shell##*/}" != bash ] && exec "$_user_shell"
           '';
 
           # Ensure UV doesn't fight with Nix's Python
