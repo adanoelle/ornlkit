@@ -37,6 +37,7 @@
             rustToolchain
 
             # -- General CLI tools --
+            pkgs.just
             pkgs.jq
             pkgs.yq-go
             pkgs.ripgrep

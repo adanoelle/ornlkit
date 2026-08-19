@@ -2,26 +2,123 @@
 
 import logging
 
-from ornlkit.diagnostics import _get_package_version, log_diagnostics
+import orjson
+
+from ornlkit.diagnostics import (
+    DiagnosticsReport,
+    _get_package_version,
+    collect_diagnostics,
+    log_diagnostics,
+)
 
 
-def test_log_diagnostics_produces_output(caplog: logging.LogRecord) -> None:
-    with caplog.at_level(logging.INFO):
-        log_diagnostics()
+class TestCollectDiagnostics:
+    def test_hostname_populated(self) -> None:
+        report = collect_diagnostics()
+        assert report.hostname
 
-    assert "environment diagnostics" in caplog.text
-    assert "end diagnostics" in caplog.text
-    assert "hostname:" in caplog.text
-    assert "python:" in caplog.text
-    assert "polars:" in caplog.text
+    def test_python_version_format(self) -> None:
+        report = collect_diagnostics()
+        assert "." in report.python_version
+
+    def test_core_packages_present(self) -> None:
+        report = collect_diagnostics()
+        assert "polars" in report.packages
+        assert "pydantic" in report.packages
+        assert report.packages["polars"] != "NOT FOUND"
+
+    def test_slurm_inactive_outside_job(self) -> None:
+        report = collect_diagnostics()
+        assert report.slurm.job_id is None
+
+    def test_slurm_active_when_env_set(self, monkeypatch: object) -> None:
+        monkeypatch.setenv("SLURM_JOB_ID", "12345")
+        monkeypatch.setenv("SLURM_NODELIST", "node[001-004]")
+        monkeypatch.setenv("SLURM_NNODES", "4")
+        monkeypatch.setenv("SLURM_NTASKS", "16")
+        monkeypatch.setenv("SLURM_CLUSTER_NAME", "frontier")
+        report = collect_diagnostics()
+        assert report.slurm.job_id == "12345"
+        assert report.slurm.nodelist == "node[001-004]"
+        assert report.slurm.nnodes == "4"
+        assert report.slurm.ntasks == "16"
+        assert report.slurm.cluster_name == "frontier"
+
+    def test_elapsed_seconds_non_negative(self) -> None:
+        report = collect_diagnostics()
+        assert report.elapsed_seconds >= 0.0
 
 
-def test_get_package_version_known() -> None:
-    version = _get_package_version("polars")
-    assert version != "NOT FOUND"
-    # Version string should look like a version number
-    assert "." in version
+class TestLogDiagnostics:
+    def test_human_readable_output(self, caplog: logging.LogRecord) -> None:
+        with caplog.at_level(logging.INFO):
+            log_diagnostics()
+
+        assert "environment diagnostics" in caplog.text
+        assert "end diagnostics" in caplog.text
+        assert "hostname:" in caplog.text
+        assert "python:" in caplog.text
+        assert "polars:" in caplog.text
+
+    def test_slurm_inactive_message(self, caplog: logging.LogRecord) -> None:
+        with caplog.at_level(logging.INFO):
+            log_diagnostics()
+
+        assert "SLURM: not running inside a job" in caplog.text
+
+    def test_slurm_active_message(self, caplog: logging.LogRecord, monkeypatch: object) -> None:
+        monkeypatch.setenv("SLURM_JOB_ID", "99999")
+        with caplog.at_level(logging.INFO):
+            log_diagnostics()
+
+        assert "SLURM_JOB_ID: 99999" in caplog.text
+        assert "not running inside a job" not in caplog.text
+
+    def test_returns_report(self) -> None:
+        report = log_diagnostics()
+        assert isinstance(report, DiagnosticsReport)
+
+    def test_json_roundtrip(self, caplog: logging.LogRecord) -> None:
+        with caplog.at_level(logging.INFO):
+            report = log_diagnostics()
+
+        # Find the JSON line in log output
+        json_line = None
+        for record in caplog.records:
+            if "diagnostics_json:" in record.message:
+                json_line = record.message
+                break
+        assert json_line is not None, "diagnostics_json line not found in log output"
+
+        # Parse JSON payload back into a DiagnosticsReport
+        json_str = json_line.split("diagnostics_json: ", 1)[1]
+        restored = DiagnosticsReport.model_validate(orjson.loads(json_str))
+        assert restored.hostname == report.hostname
+        assert restored.packages == report.packages
+        assert restored.slurm == report.slurm
 
 
-def test_get_package_version_unknown() -> None:
-    assert _get_package_version("no-such-package-xyz-999") == "NOT FOUND"
+class TestCustomCorePackages:
+    def test_custom_core_packages_collect(self) -> None:
+        report = collect_diagnostics(core_packages=("pydantic", "orjson"))
+        assert set(report.packages.keys()) == {"pydantic", "orjson"}
+
+    def test_custom_core_packages_log(self, caplog: logging.LogRecord) -> None:
+        with caplog.at_level(logging.INFO):
+            report = log_diagnostics(core_packages=("pydantic",))
+        assert set(report.packages.keys()) == {"pydantic"}
+        assert "pydantic:" in caplog.text
+
+    def test_empty_core_packages(self) -> None:
+        report = collect_diagnostics(core_packages=())
+        assert report.packages == {}
+
+
+class TestGetPackageVersion:
+    def test_known_package(self) -> None:
+        version = _get_package_version("polars")
+        assert version != "NOT FOUND"
+        assert "." in version
+
+    def test_unknown_package(self) -> None:
+        assert _get_package_version("no-such-package-xyz-999") == "NOT FOUND"

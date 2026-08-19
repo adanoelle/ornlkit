@@ -1,23 +1,18 @@
 """Allow running with `python -m ornlkit` or `uv run ornlkit`."""
 
 import logging
-import sys
+
+from omegaconf import DictConfig
 
 from ornlkit import __version__
-from ornlkit.diagnostics import log_diagnostics
+from ornlkit.experiment import ornlkit_main
 
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 
-def main() -> None:
-    log_diagnostics()
-    logger.info("Hello from ornlkit %s", __version__)
+@ornlkit_main(config_path="conf", config_name="config")
+def main(cfg: DictConfig) -> None:
+    logger.info("%s %s", cfg.app.greeting, __version__)
 
 
 if __name__ == "__main__":

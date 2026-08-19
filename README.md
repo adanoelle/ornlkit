@@ -29,7 +29,9 @@ Requires [Nix](https://nixos.org/) with flakes enabled.
 ```bash
 nix develop
 uv sync
-uv run pytest
+just check              # lint + typecheck + test
+just run                # local smoke test → runs/ornlkit/local-*/
+just run app.greeting="Hi"  # with Hydra overrides
 ```
 
 ## Usage on Frontier
@@ -120,27 +122,32 @@ srun -N 2 -n 16 --gpus-per-task=1 \
 
 ## Smoke test
 
-A ready-made batch script verifies the environment on a compute node:
+Submit a smoke-test job on Frontier using the justfile:
 
 ```bash
-# Edit jobs/hello.sbatch and replace <project_id> with your OLCF allocation
-sbatch jobs/hello.sbatch
+just submit account=ABC123
+just submit account=ABC123 nodes=2 time=00:30:00 app.greeting="Hi"
+just jobs                    # check job status
+just last-log                # view most recent log
 ```
 
-This runs `uv run python3 -u -m ornlkit`, which logs diagnostics (hostname,
-SLURM job info, Python version, core dependency versions) then exits. Output
-goes to `logs/ornlkit-hello-<jobid>.out`:
+Output goes to a unified `runs/` directory:
 
-```bash
-squeue -u $USER              # check job status
-cat logs/ornlkit-hello-*.out  # view results
+```
+runs/ornlkit/
+  {jobid}.log                # SLURM stdout/stderr
+  {jobid}/                   # Hydra output dir
+    .hydra/config.yaml
+    main.log
 ```
 
 You can also run locally to preview the output:
 
 ```bash
-uv run ornlkit
+just run                     # → runs/ornlkit/local-YYYYMMDD-HHMMSS/
 ```
+
+For manual submission without the justfile, see `jobs/hello.sbatch`.
 
 ## Reference
 

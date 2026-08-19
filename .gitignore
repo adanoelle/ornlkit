@@ -16,8 +16,13 @@ target/
 # Apptainer
 *.sif
 
-# SLURM output
+# Run output (SLURM logs + Hydra output)
+runs/
+
+# Legacy output dirs
 logs/
+outputs/
+multirun/
 
 # Editor
 .direnv/
