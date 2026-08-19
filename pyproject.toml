@@ -2,7 +2,7 @@
 name = "ornlkit"
 version = "0.1.0"
 description = "Data engineering toolkit for ORNL"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     # DataFrames & columnar data (Rust-backed)
     "polars",
@@ -44,14 +44,14 @@ build-backend = "hatchling.build"
 # python-preference = "only-system"
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
 [tool.ty.environment]
-python-version = "3.12"
+python-version = "3.10"
 
 [tool.ty.src]
 include = ["src"]
