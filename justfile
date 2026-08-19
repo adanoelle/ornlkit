@@ -33,12 +33,31 @@ typecheck:
 # Run lint, typecheck, and tests
 check: lint typecheck test
 
-# Sync .venv with uv.lock using the miniforge3 Python (shared across login + compute nodes)
+# Sync .venv-frontier for compute nodes (miniforge3 Python, not Nix)
 sync:
     #!/usr/bin/env bash
     set -euo pipefail
-    module load miniforge3/23.11.0-0
-    uv run python -c ""
+
+    # Load miniforge3 (sets CONDA_PREFIX)
+    if type module &>/dev/null; then
+        module load miniforge3/23.11.0-0
+    fi
+
+    # Use CONDA_PREFIX to find miniforge3 Python (bypasses Nix PATH ordering)
+    if [[ -z "${CONDA_PREFIX:-}" || ! -x "${CONDA_PREFIX}/bin/python3" ]]; then
+        echo "error: CONDA_PREFIX not set or python3 not found." >&2
+        echo "Run 'module load miniforge3/23.11.0-0' first." >&2
+        exit 1
+    fi
+    frontier_python="${CONDA_PREFIX}/bin/python3"
+    echo "Syncing .venv-frontier with: ${frontier_python} ($(${frontier_python} --version))"
+
+    UV_PROJECT_ENVIRONMENT=.venv-frontier \
+    UV_CACHE_DIR="/tmp/uv-cache-$USER" \
+    UV_LINK_MODE=copy \
+        uv sync --no-dev --python "$frontier_python" --frozen
+
+    echo ".venv-frontier ready."
 
 # Local run with unified output dir
 run *hydra_args:
@@ -55,6 +74,11 @@ run *hydra_args:
 submit *hydra_args:
     #!/usr/bin/env bash
     set -euo pipefail
+
+    if [[ ! -x .venv-frontier/bin/ornlkit ]]; then
+        echo "error: .venv-frontier not found. Run 'just sync' first." >&2
+        exit 1
+    fi
 
     _account="{{ account }}"
     _script="{{ script }}"

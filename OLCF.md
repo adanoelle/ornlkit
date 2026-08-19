@@ -38,7 +38,9 @@ uv run python3 your_script.py
 
 ### In a batch script
 
-The conda environment deactivates at job start. Re-activate in your script:
+Run `just sync` on the login node first to create `.venv-frontier/` with
+miniforge3 Python. Then use the venv directly in batch scripts — no uv needed
+on compute nodes:
 
 ```bash
 #!/bin/bash
@@ -48,10 +50,10 @@ The conda environment deactivates at job start. Re-activate in your script:
 #SBATCH -t 00:30:00
 
 module load miniforge3/23.11.0-0
-export PATH="/ccs/proj/<project_id>/$USER/.local/bin:$PATH"
+export TMPDIR="/tmp"
 
 cd /ccs/proj/<project_id>/$USER/ornlkit
-uv run python3 your_script.py
+.venv-frontier/bin/python3 your_script.py
 ```
 
 ## Option B: Apptainer Container (built locally)

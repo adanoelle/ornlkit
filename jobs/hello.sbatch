@@ -19,12 +19,10 @@
 set -euo pipefail
 
 module load miniforge3/23.11.0-0
-
-export PATH="$HOME/.local/bin:$PATH"   # ensure uv is on PATH
-export UV_CACHE_DIR="/tmp/uv-cache-$USER"  # Lustre doesn't support file locking
-export TMPDIR="/tmp"                       # SLURM prolog can't create /run/user/<uid>
+export TMPDIR="/tmp"  # SLURM prolog can't create /run/user/<uid>
 
 run_dir="runs/ornlkit/${SLURM_JOB_ID:-local}"
 mkdir -p "$run_dir"
 
-uv run --no-sync ornlkit hydra.run.dir="$run_dir" "$@"
+# Run from the pre-built compute venv (synced on login node via `just sync`)
+.venv-frontier/bin/ornlkit hydra.run.dir="$run_dir" "$@"
